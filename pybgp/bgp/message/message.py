@@ -116,16 +116,19 @@ class Open(Message):
         super(Message.Type.OPEN)
 
     def __str__(self):
-        '''BGP OPEN Message
-        Version      %d
-        AS           %d
-        Hold Time    %d
-        Router ID    %s
-        Capabilities %s
-        ''' % (
+        'BGP OPEN Message\n\
+        \tVersion      %d\n\
+        \tAS           %d\n\
+        \tHold Time    %d\n\
+        \tRouter ID    %s\n\
+        \tCapabilities %s\n\
+        ' % (
             self.version,
             self.asn,
             self.hold_time,
             self.router_id,
             self.capabilities
         )
+
+    def pack(self):
+        return super.pack()
