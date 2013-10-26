@@ -1,6 +1,6 @@
 # encoding: utf-8
 """
-Author: Quentin Loos <contact@quentinloos.be
+Author: Quentin Loos <contact@quentinloos.be>
 """
 from pybgp.bgp.message import Message
 from struct import pack
@@ -64,6 +64,15 @@ class Open(Message):
     min_length = 29
 
     def __init__(self, asn, hold_time, router_id, version=4, capabilities=None):
+        """
+        Constructor.
+
+        :param int asn: The AS number of the sender.
+        :param int hold_time: The hold_time of the sender.
+        :param str router_id: The router_id of the sender.
+        :param int version: Version of BGP (default=4).
+        :param list capabilities: List of capabilities (default=None).
+        """
         self.version      = version
         self.asn          = asn
         self.hold_time    = hold_time
@@ -90,9 +99,9 @@ class Open(Message):
         the length of capabilities and the list of capabilities.
         """
         str = super(Open, self).pack()
-        str += chr(self.version)
+        str += pack('!B', self.version)
         str += pack('!H', self.asn)
-        str += chr(self.hold_time)
-        str += ''.join(chr(int(s)) for s in self.router_id.split('.'))
-        str += chr(len(self.capabilities))
+        str += pack('!B', self.hold_time)
+        str += self.router_id.packed
+        str += pack('!B', len(self.capabilities))
         return str

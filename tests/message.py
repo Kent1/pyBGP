@@ -5,9 +5,9 @@ Author: Quentin Loos <contact@quentinloos.be>
 """
 import os
 import sys
-import struct
 sys.path.insert(0, os.path.abspath('..'))
-
+import struct
+import ipaddr
 import unittest
 
 from pybgp.bgp.message import Message, Open
@@ -34,7 +34,7 @@ class TestOpen(unittest.TestCase):
     def setUp(self):
         asn       = 65000
         hold_time = 3
-        router_id = '10.0.0.1'
+        router_id = ipaddr.IPAddress('10.0.0.1')
         self.open = Open(asn, hold_time, router_id)
 
     def test_pack(self):

@@ -38,7 +38,7 @@ class Message(object):
         Represents the type of the message.
     """
 
-    marker     = chr(0xFF) * 16
+    marker     = pack('!B', 0xFF) * 16
     type       = 0
     min_length = 19
 
