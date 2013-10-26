@@ -60,35 +60,39 @@ class Open(Message):
             Parameter interpreted according to the Parm. Type. (RFC 3392)
     """
 
-    type   = Message.Type.OPEN
-    length = 29
+    type       = Message.Type.OPEN
+    min_length = 29
 
     def __init__(self, asn, hold_time, router_id, version=4, capabilities=None):
         self.version      = version
         self.asn          = asn
         self.hold_time    = hold_time
         self.router_id    = router_id
-        self.capabilities = capabilities
+        self.capabilities = capabilities if capabilities else []
 
     def __str__(self):
         result = 'BGP OPEN Message ('
-        result += 'Version %d, ' % self.version
-        result += 'AS %d, ' % self.asn
-        result += 'Hold Time %d, ' % self.hold_time
-        result += 'Router ID %s, ' % self.router_id
+        result += 'Version %d, '     % self.version
+        result += 'AS %d, '          % self.asn
+        result += 'Hold Time %d, '   % self.hold_time
+        result += 'Router ID %s, '   % self.router_id
         result += 'Capabilities %s)' % self.capabilities
         return result
+
+    @property
+    def length(self):
+        return self.min_length + len(self.capabilities)
 
     def pack(self):
         """
         Return a string representation of the packet to send.
-        This string includes header, version, AS number, Hold Time, Router ID
-        and the list of capabilities.
+        This string includes header, version, AS number, Hold Time, Router ID,
+        the length of capabilities and the list of capabilities.
         """
         str = super(Open, self).pack()
         str += chr(self.version)
         str += pack('!H', self.asn)
         str += chr(self.hold_time)
         str += ''.join(chr(int(s)) for s in self.router_id.split('.'))
-        str += chr(len(self.capabilities) if self.capabilities else 0)
+        str += chr(len(self.capabilities))
         return str

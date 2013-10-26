@@ -38,9 +38,9 @@ class Message(object):
         Represents the type of the message.
     """
 
-    marker = chr(0xFF) * 16
-    type   = 0
-    length = 19
+    marker     = chr(0xFF) * 16
+    type       = 0
+    min_length = 19
 
     class Type(object):
         OPEN         = 1
@@ -48,8 +48,9 @@ class Message(object):
         NOTIFICATION = 3
         KEEPALIVE    = 4
 
-    def __str__(self):
-        return 'BGP Message'
+    @property
+    def length(self):
+        return self.min_length
 
     def pack(self):
         """
@@ -57,3 +58,6 @@ class Message(object):
         This string includes marker, length of the packet and type.
         """
         return self.marker + pack('!H', self.length) + pack('!B', self.type)
+
+    def __str__(self):
+        return 'BGP Message'
