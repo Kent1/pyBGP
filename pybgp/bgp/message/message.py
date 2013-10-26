@@ -15,9 +15,9 @@ class Message(object):
     Based on RFC 4271.
 
     Marker : 16-octect, all bits are set.
-    Length : 2-octect unsigned integer. Indicates the total length of the
+    Length : 2-octect uint. Indicates the total length of the
              message (including the header). This value is >= 19 and <= 4096.
-    Type   : 1-octect unsigned integer representing the type of the message.
+    Type   : 1-octect uint. Represents the type of the message.
 
     0                   1                   2                   3
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -35,17 +35,14 @@ class Message(object):
     """
 
     marker = chr(0xFF) * 16
+    type   = 0
     length = 19
 
     class Type(object):
-        OPEN = 1
-        UPDATE = 2
+        OPEN         = 1
+        UPDATE       = 2
         NOTIFICATION = 3
-        KEEPALIVE = 4
-
-    def __init__(self, length, type_):
-        self.length = length
-        self.type = type_
+        KEEPALIVE    = 4
 
     def __str__(self):
         return 'BGP Message'
@@ -63,11 +60,11 @@ class Open(Message):
     BGP OPEN message. This is the first message send after the TCP connection
     is etablished.
 
-    Version           : 1-octect unsigned integer. Indicates the protocol version number of the message.
-    Autonomous System : 2-octect unsigned integer. ASN of the sender of this message.
-    Hold Time         : 2-octect unsigned integer. Indicates the number of seconds for the hold timer.
-    BGP Identifier    : 4-octect unsigned integer. An assigned IP address of the sender.
-    Opt. Parm. Length : 1-octect unsigned integer. Length of the optional parameters.
+    Version           : 1-octect uint. Indicates the protocol version.
+    Autonomous System : 2-octect uint. ASN of the sender of this message.
+    Hold Time         : 2-octect uint. Seconds between message (KEEPALIVE).
+    BGP Identifier    : 4-octect uint. An assigned IP address of the sender.
+    Opt. Parm. Length : 1-octect uint. Length of the optional parameters.
 
     0                   1                   2                   3
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -91,44 +88,46 @@ class Open(Message):
     Optional Parameters
     -------------------
 
-    List of optional parameters. Each parameters is encoded as a <Parameter Type, Parameter Length, Parameter Value> triplet.
+    List of optional parameters. Each parameters is encoded as a
+    <Parameter Type, Parameter Length, Parameter Value> triplet.
 
     Parm. Type   : 1-octect. Identifies individual parameters.
-    Parm. Length : 1-octect. Contains the length of the parameter value in octects.
-    Parm. Value  : Parameter interpreted according to the value of the Parm. Type.
+    Parm. Length : 1-octect. Contains the length of the parameter value
+                   in octects.
+    Parm. Value  : Parameter interpreted according to the Parm. Type.
     (RFC 3392)
 
          0                   1
-     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6
      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-...
      |  Parm. Type   | Parm. Length  |  Parameter Value (variable)
      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-...
     """
 
-    TYPE = chr(Message.Type.OPEN)
+    type   = Message.Type.OPEN
+    length = 29
 
-    def __init__(self, version, asn, hold_time, router_id, capabilities):
-        self.version = version
-        self.asn = asn
-        self.hold_time = hold_time
-        self.router_id = router_id
+    def __init__(self, asn, hold_time, router_id, version=4, capabilities=None):
+        self.version      = version
+        self.asn          = asn
+        self.hold_time    = hold_time
+        self.router_id    = router_id
         self.capabilities = capabilities
-        super(Message.Type.OPEN)
 
     def __str__(self):
-        'BGP OPEN Message\n\
-        \tVersion      %d\n\
-        \tAS           %d\n\
-        \tHold Time    %d\n\
-        \tRouter ID    %s\n\
-        \tCapabilities %s\n\
-        ' % (
-            self.version,
-            self.asn,
-            self.hold_time,
-            self.router_id,
-            self.capabilities
-        )
+        result = 'BGP OPEN Message ('
+        result += 'Version %d, ' % self.version
+        result += 'AS %d, ' % self.asn
+        result += 'Hold Time %d, ' % self.hold_time
+        result += 'Router ID %s, ' % self.router_id
+        result += 'Capabilities %s)' % self.capabilities
+        return result
 
     def pack(self):
-        return super.pack()
+        str = super(Open, self).pack()
+        str += chr(self.version)
+        str += pack('!H', self.asn)
+        str += chr(self.hold_time)
+        str += ''.join(chr(int(s)) for s in self.router_id.split('.'))
+        str += chr(len(self.capabilities) if self.capabilities else 0)
+        return str
