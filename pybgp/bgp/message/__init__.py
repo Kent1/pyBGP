@@ -1,2 +1,3 @@
 from message import Message
-from message import Open
+from open import Open
+from update import Update
