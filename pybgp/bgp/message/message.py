@@ -8,28 +8,34 @@ from struct import pack
 class Message(object):
 
     """
+    BGP message. It defines the header of all BGP messages like OPEN, UPDATE,
+    etc.
 
-    BGP message. It defines the base of OPEN, UPDATE, KEEPALIVE, etc..
-    Based on RFC 4271.
+    Format of the message::
 
-    Marker : 16-octect, all bits are set.
-    Length : 2-octect uint. Indicates the total length of the
-             message (including the header). This value is >= 19 and <= 4096.
-    Type   : 1-octect uint. Represents the type of the message.
+        0                   1                   2                   3
+        0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        |                                                               |
+        +                                                               +
+        |                                                               |
+        +                                                               +
+        |                       Marker (16 octects)                     |
+        +                                                               +
+        |                                                               |
+        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        |        Length  (2 octects)    |      Type     |
+        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-    0                   1                   2                   3
-    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    |                                                               |
-    +                                                               +
-    |                                                               |
-    +                                                               +
-    |                           Marker                              |
-    +                                                               +
-    |                                                               |
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    |          Length               |      Type     |
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    Marker:
+        All bits are set.
+
+    Length:
+        Indicates the total length of the message (including the header).
+        This value is >= 19 and <= 4096.
+
+    Type:
+        Represents the type of the message.
     """
 
     marker = chr(0xFF) * 16
@@ -47,6 +53,7 @@ class Message(object):
 
     def pack(self):
         """
-        Return the packet representation.
+        Return a string representation of the packet to send.
+        This string includes marker, length of the packet and type.
         """
         return self.marker + pack('!H', self.length) + pack('!B', self.type)

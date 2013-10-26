@@ -12,48 +12,52 @@ class Open(Message):
     BGP OPEN message. This is the first message send after the TCP connection
     is etablished.
 
-    Version           : 1-octect uint. Indicates the protocol version.
-    Autonomous System : 2-octect uint. ASN of the sender of this message.
-    Hold Time         : 2-octect uint. Seconds between message (KEEPALIVE).
-    BGP Identifier    : 4-octect uint. An assigned IP address of the sender.
-    Opt. Parm. Length : 1-octect uint. Length of the optional parameters.
+    Format of the message::
 
-    0                   1                   2                   3
-    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    +-+-+-+-+-+-+-+-+
-    |    Version    |
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    |     My Autonomous System      |
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    |           Hold Time           |
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    |                         BGP Identifier                        |
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    | Opt Parm Len  |
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    |                                                               |
-    |             Optional Parameters (variable)                    |
-    |                                                               |
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        0                   1                   2                   3
+        0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+        +-+-+-+-+-+-+-+-+
+        |    Version    |
+        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        |     My Autonomous System      |
+        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        |           Hold Time           |
+        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        |                         BGP Identifier                        |
+        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        | Opt Parm Len  |
+        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        |                                                               |
+        |             Optional Parameters (variable)                    |
+        |                                                               |
+        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
+    Version:
+        Indicates the protocol version.
+    Autonomous System:
+        ASN of the sender of this message.
+    Hold Time:
+        Seconds between message (KEEPALIVE).
+    BGP Identifier:
+        An assigned IP address of the sender.
+    Opt. Parm. Length:
+        Length of the optional parameters.
+    Optional Parameters:
+        List of optional parameters. Each parameters is encoded as a
+        <Parameter Type, Parameter Length, Parameter Value> triplet::
 
-    Optional Parameters
-    -------------------
+            0                   1
+            0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6
+            +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-...
+            |  Parm. Type   | Parm. Length  |  Parameter Value (variable)
+            +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-...
 
-    List of optional parameters. Each parameters is encoded as a
-    <Parameter Type, Parameter Length, Parameter Value> triplet.
-
-    Parm. Type   : 1-octect. Identifies individual parameters.
-    Parm. Length : 1-octect. Contains the length of the parameter value
-                   in octects.
-    Parm. Value  : Parameter interpreted according to the Parm. Type.
-    (RFC 3392)
-
-         0                   1
-     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6
-     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-...
-     |  Parm. Type   | Parm. Length  |  Parameter Value (variable)
-     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-...
+        Parm. Type:
+            Identifies individual parameters.
+        Parm. Length:
+            Contains the length of the parameter value in octects.
+        Parm. Value:
+            Parameter interpreted according to the Parm. Type. (RFC 3392)
     """
 
     type   = Message.Type.OPEN
@@ -76,6 +80,11 @@ class Open(Message):
         return result
 
     def pack(self):
+        """
+        Return a string representation of the packet to send.
+        This string includes header, version, AS number, Hold Time, Router ID
+        and the list of capabilities.
+        """
         str = super(Open, self).pack()
         str += chr(self.version)
         str += pack('!H', self.asn)
