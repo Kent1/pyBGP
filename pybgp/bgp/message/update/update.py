@@ -2,7 +2,7 @@
 """
 Author: Quentin Loos <contact@quentinloos.be>
 """
-from pybgp.bgp.message import Message
+from pybgp.bgp.message import Message, Type
 from struct import pack
 
 
@@ -44,8 +44,7 @@ class Update(Message):
     See http://www.ietf.org/rfc/rfc4271.txt for more informations
     """
 
-    type       = Message.Type.UPDATE
-    min_length = 23
+    MIN_LEN = 23
 
     def __init__(self, withdrawn_routes=None, path_attr=None, nlris=None):
         """
@@ -56,12 +55,13 @@ class Update(Message):
         self.withdrawn_routes = withdrawn_routes if withdrawn_routes else []
         self.path_attr        = path_attr if path_attr else []
         self.nlris            = nlris if nlris else []
+        super(Update, self).__init__(Type.UPDATE)
 
-    @property
-    def length(self):
-        return self.min_length
-        + sum([network.length() for network in self.withdrawn_routes])
-        + len(self.path_attr)
+    def __len__(self):
+        return self.MIN_LEN
+        + sum([len(route) for route in self.withdrawn_routes])
+        + sum([len(attr) for attr in self.path_attr])
+        + sum([len(nlri) for nlri in self.nlris])
 
     def pack(self):
         """
@@ -71,17 +71,17 @@ class Update(Message):
         """
         str = super(Update, self).pack()
         # Length of withdrawn routes field in octects
-        length = sum([route.length() for route in self.withdrawn_routes])
+        length = sum([len(route) for route in self.withdrawn_routes])
         str += pack('!H', length)
         # 2-tuple IPField
-        str += ''.join([network.pack() for network in self.withdrawn_routes])
+        str += ''.join([route.pack() for route in self.withdrawn_routes])
         # Length of path attr
-        length = sum([attr.length for attr in self.path_attr])
+        length = sum([len(attr) for attr in self.path_attr])
         str += pack('!H', length)
         # Path Attributes
         str += ''.join([attr.pack() for attr in self.path_attr])
         # NLRI
-        str += ''.join([network.pack() for network in self.nlris])
+        str += ''.join([nlri.pack() for nlri in self.nlris])
         return str
 
 
@@ -126,7 +126,7 @@ class IPField(object):
             number_octect = 0
         return number_octect
 
-    def length(self):
+    def __len__(self):
         return self.octects + 1
 
     def pack(self):

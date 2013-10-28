@@ -5,6 +5,13 @@ Author: Quentin Loos <contact@quentinloos.be>
 from struct import pack
 
 
+class Type(object):
+    OPEN         = 1
+    UPDATE       = 2
+    NOTIFICATION = 3
+    KEEPALIVE    = 4
+
+
 class Message(object):
 
     """
@@ -38,26 +45,21 @@ class Message(object):
         Represents the type of the message.
     """
 
-    marker     = pack('!B', 0xFF) * 16
-    type       = 0
-    min_length = 19
+    MARKER  = pack('!B', 0xFF) * 16
+    MIN_LEN = 19
 
-    class Type(object):
-        OPEN         = 1
-        UPDATE       = 2
-        NOTIFICATION = 3
-        KEEPALIVE    = 4
+    def __init__(self, type):
+        self.type = type
 
-    @property
-    def length(self):
-        return self.min_length
+    def __str__(self):
+        return 'BGP Message'
+
+    def __len__(self):
+        return self.MIN_LEN
 
     def pack(self):
         """
         Return a string representation of the packet to send.
         This string includes marker, length of the packet and type.
         """
-        return self.marker + pack('!H', self.length) + pack('!B', self.type)
-
-    def __str__(self):
-        return 'BGP Message'
+        return self.MARKER + pack('!H', len(self)) + pack('!B', self.type)

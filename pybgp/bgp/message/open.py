@@ -2,8 +2,9 @@
 """
 Author: Quentin Loos <contact@quentinloos.be>
 """
-from pybgp.bgp.message import Message
+from pybgp.bgp.message import Message, Type
 from struct import pack
+import ipaddr
 
 
 class Open(Message):
@@ -60,8 +61,7 @@ class Open(Message):
             Parameter interpreted according to the Parm. Type. (RFC 3392)
     """
 
-    type       = Message.Type.OPEN
-    min_length = 29
+    MIN_LEN = 29
 
     def __init__(self, asn, hold_time, router_id, version=4, capabilities=None):
         """
@@ -76,6 +76,7 @@ class Open(Message):
         self.hold_time    = hold_time
         self.router_id    = ipaddr.IPv4Address(router_id)
         self.capabilities = capabilities if capabilities else []
+        super(Open, self).__init__(Type.OPEN)
 
     def __str__(self):
         result = 'BGP OPEN Message ('
@@ -86,9 +87,8 @@ class Open(Message):
         result += 'Capabilities %s)' % self.capabilities
         return result
 
-    @property
-    def length(self):
-        return self.min_length + len(self.capabilities)
+    def __len__(self):
+        return self.MIN_LEN + len(self.capabilities)
 
     def pack(self):
         """
@@ -96,10 +96,11 @@ class Open(Message):
         This string includes header, version, AS number, Hold Time, Router ID,
         the length of capabilities and the list of capabilities.
         """
-        str = super(Open, self).pack()
-        str += pack('!B', self.version)
-        str += pack('!H', self.asn)
-        str += pack('!B', self.hold_time)
-        str += self.router_id.packed
-        str += pack('!B', len(self.capabilities))
-        return str
+        result = super(Open, self).pack()
+        result += pack('!B', self.version)
+        result += pack('!H', self.asn)
+        result += pack('!H', self.hold_time)
+        result += self.router_id.packed
+        result += pack('!B', len(self.capabilities))
+        #TODO Support capabilities
+        return result
