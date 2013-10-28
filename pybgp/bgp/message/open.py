@@ -65,18 +65,16 @@ class Open(Message):
 
     def __init__(self, asn, hold_time, router_id, version=4, capabilities=None):
         """
-        Constructor.
-
         :param int asn: The AS number of the sender.
         :param int hold_time: The hold_time of the sender.
-        :param str router_id: The router_id of the sender.
+        :param str or int router_id: The router_id of the sender.
         :param int version: Version of BGP (default=4).
         :param list capabilities: List of capabilities (default=None).
         """
         self.version      = version
         self.asn          = asn
         self.hold_time    = hold_time
-        self.router_id    = router_id
+        self.router_id    = ipaddr.IPv4Address(router_id)
         self.capabilities = capabilities if capabilities else []
 
     def __str__(self):
