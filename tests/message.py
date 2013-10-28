@@ -10,32 +10,16 @@ import struct
 import ipaddr
 import unittest
 
-from pybgp.bgp.message import Message, Open
-
-
-class TestMessage(unittest.TestCase):
-
-    def setUp(self):
-        self.message = Message()
-
-    def test_pack(self):
-        # marker
-        expected = chr(0xFF) * 16
-        # length = 19, 2 bytes
-        expected += chr(0)
-        expected += chr(19)
-        # type
-        expected += chr(0)
-        self.assertEqual(self.message.pack(), expected)
+from pybgp.bgp.message import Open, Update
 
 
 class TestOpen(unittest.TestCase):
 
     def setUp(self):
-        asn       = 65000
-        hold_time = 3
-        router_id = ipaddr.IPAddress('10.0.0.1')
-        self.open = Open(asn, hold_time, router_id)
+        self.asn       = 65000
+        self.hold_time = 3
+        self.router_id = ipaddr.IPAddress('10.0.0.1')
+        self.open      = Open(self.asn, self.hold_time, self.router_id)
 
     def test_pack(self):
         # marker
@@ -48,9 +32,9 @@ class TestOpen(unittest.TestCase):
         # version = 4
         expected += chr(4)
         # asn = 65000, 0xFD 0xE8
-        expected += struct.pack('!H', 65000)
+        expected += struct.pack('!H', self.asn)
         # hold time = 3
-        expected += chr(3)
+        expected += struct.pack('!H', self.hold_time)
         # bgp identifier
         expected += chr(10)
         expected += chr(0)
@@ -59,7 +43,35 @@ class TestOpen(unittest.TestCase):
         # param length
         expected += chr(0)
         self.assertEqual(self.open.pack(), expected)
-        print self.open
+
+    def test_len(self):
+        self.assertEqual(len(self.open), Open.MIN_LEN)
+
+
+class TestUpdate(unittest.TestCase):
+
+    def setUp(self):
+        self.update = Update()
+
+    def test_len(self):
+        self.assertEqual(len(self.update), Update.MIN_LEN)
+
+    def test_pack(self):
+        # Marker
+        expected = chr(0xFF) * 16
+        # length = 23, 2 bytes
+        expected += chr(0)
+        expected += chr(23)
+        # type = 2 - UPDATE
+        expected += chr(2)
+        # Withdrawn Routes Length (2 octets)
+        expected += struct.pack('!H', 0)
+        # Withdrawn Routes
+        # Total Path Attribute Length (2 octets)
+        expected += struct.pack('!H', 0)
+        # Path Attributes
+        # Network Layer Reachability Information
+        self.assertEqual(self.update.pack(), expected)
 
 
 if __name__ == '__main__':
