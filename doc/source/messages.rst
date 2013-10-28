@@ -1,11 +1,23 @@
 BGP Messages
 ============
 
+Message
+-------
+
 .. autoclass:: pybgp.bgp.message.Message
    :members:
+
+OPEN Message
+------------
 
 .. autoclass:: pybgp.bgp.message.Open
    :members:
 
-.. autoclass:: pybgp.bgp.message.Update
+UPDATE Message
+--------------
+
+.. automodule:: pybgp.bgp.message.update.update
+   :members:
+
+.. automodule:: pybgp.bgp.message.update.path_attribute
    :members:
