@@ -11,7 +11,7 @@ import ipaddr
 import unittest
 
 from pybgp.bgp.message import Open, Update
-from pybgp.bgp.message.update import path_attribute
+from pybgp.bgp.message.update import path_attribute, IPField
 
 
 class TestOpen(unittest.TestCase):
@@ -57,7 +57,7 @@ class TestUpdate(unittest.TestCase):
     def test_len(self):
         self.assertEqual(len(self.update), Update.MIN_LEN)
 
-    def test_pack(self):
+    def test_empty(self):
         # Marker
         expected = chr(0xFF) * 16
         # length = 23, 2 bytes
@@ -68,6 +68,35 @@ class TestUpdate(unittest.TestCase):
         # Withdrawn Routes Length (2 octets)
         expected += struct.pack('!H', 0)
         # Withdrawn Routes
+        # Total Path Attribute Length (2 octets)
+        expected += struct.pack('!H', 0)
+        # Path Attributes
+        # Network Layer Reachability Information
+        self.assertEqual(self.update.pack(), expected)
+
+    def test_withdrawn_routes(self):
+        self.update.withdrawn_routes.append(IPField(23, '10.0.1.0'))
+        self.update.withdrawn_routes.append(IPField(15, '180.128.0.0'))
+
+        # Marker
+        expected = chr(0xFF) * 16
+        # length = 23, 2 bytes
+        expected += chr(0)
+        expected += chr(30)
+        # type = 2 - UPDATE
+        expected += chr(2)
+        # Withdrawn Routes Length (2 octets)
+        expected += struct.pack('!H', 7)
+        # Withdrawn Routes
+        ## 10.0.1.0/23
+        expected += struct.pack('!B', 23)
+        expected += struct.pack('!B', 10)
+        expected += struct.pack('!B', 0)
+        expected += struct.pack('!B', 1)
+        ## 180.128.0.0/15
+        expected += struct.pack('!B', 15)
+        expected += struct.pack('!B', 180)
+        expected += struct.pack('!B', 128)
         # Total Path Attribute Length (2 octets)
         expected += struct.pack('!H', 0)
         # Path Attributes
@@ -101,7 +130,7 @@ class TestUpdate(unittest.TestCase):
         expected = chr(0xFF) * 16
         # length = 23, 2 bytes
         expected += chr(0)
-        expected += chr(23)
+        expected += chr(69)
         # type = 2 - UPDATE
         expected += chr(2)
         # Withdrawn Routes Length (2 octets)
@@ -194,7 +223,6 @@ class TestUpdate(unittest.TestCase):
         expected += struct.pack('!B', 0)
         expected += struct.pack('!B', 1)
         expected += struct.pack('!B', 1)
-
 
         # Network Layer Reachability Information
         self.assertEqual(self.update.pack(), expected)

@@ -58,10 +58,12 @@ class Update(Message):
         super(Update, self).__init__(Type.UPDATE)
 
     def __len__(self):
-        return self.MIN_LEN
-        + sum([len(route) for route in self.withdrawn_routes])
-        + sum([len(attr) for attr in self.path_attr])
-        + sum([len(nlri) for nlri in self.nlris])
+        return (
+            self.MIN_LEN +
+            sum([len(route) for route in self.withdrawn_routes]) +
+            sum([len(attr) for attr in self.path_attr]) +
+            sum([len(nlri) for nlri in self.nlris])
+        )
 
     def pack(self):
         """
@@ -69,20 +71,20 @@ class Update(Message):
         This string includes header, version, AS number, Hold Time, Router ID,
         the length of capabilities and the list of capabilities.
         """
-        str = super(Update, self).pack()
+        result = super(Update, self).pack()
         # Length of withdrawn routes field in octects
         length = sum([len(route) for route in self.withdrawn_routes])
-        str += pack('!H', length)
+        result += pack('!H', length)
         # 2-tuple IPField
-        str += ''.join([route.pack() for route in self.withdrawn_routes])
+        result += ''.join([route.pack() for route in self.withdrawn_routes])
         # Length of path attr
         length = sum([len(attr) for attr in self.path_attr])
-        str += pack('!H', length)
+        result += pack('!H', length)
         # Path Attributes
-        str += ''.join([attr.pack() for attr in self.path_attr])
+        result += ''.join([attr.pack() for attr in self.path_attr])
         # NLRI
-        str += ''.join([nlri.pack() for nlri in self.nlris])
-        return str
+        result += ''.join([nlri.pack() for nlri in self.nlris])
+        return result
 
 
 class IPField(object):
@@ -133,5 +135,5 @@ class IPField(object):
         packed = pack('!B', self.length)
         prefix_split = self.prefix.split('.')
         for i in range(self.octects):
-            packed += pack('!B', prefix_split[i])
+            packed += pack('!B', int(prefix_split[i]))
         return packed
