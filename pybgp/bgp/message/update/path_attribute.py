@@ -2,7 +2,7 @@
 """
 Author: Quentin Loos <contact@quentinloos.be>
 """
-from struct import pack
+import struct
 import ipaddr
 
 
@@ -79,26 +79,53 @@ class PathAttribute(object):
     Flags and the Attribute Type Code.
     """
 
-    def __init__(self, flags=0, type_code=0, value=0):
+    def __init__(self, flags, type_code, length, value):
+        """
+        :param int flags: flags of the Path Attribute.
+        :param int type_code: type code of the Path Attribute.
+        :param int length: length in octet of the value.
+        :param value: value of the Path Attribute.
+        """
         self.flags     = flags
         self.type_code = type_code
+        self.length    = length
         self.value     = value
 
-    def length(self):
-        return 0
+    def __len__(self):
+        length_octect = 2 if(self.flags & Flag.EXTEND_LENGTH) else 1
+        return 2 + length_octect + self.length()
 
     def pack(self):
-        result = pack('!B', self.flags)
-        result += pack('!B', self.type_code)
-        if(flags & Flag.EXTEND_LENGTH):
-            result += pack('!H', self.length)
+        """
+        Return a string representing the message.
+        """
+        result = struct.pack('!B', self.flags)
+        result += struct.pack('!B', self.type_code)
+
+        # Extended Length ?
+        if(self.flags & Flag.EXTEND_LENGTH):
+            result += struct.pack('!H', self.length())
         else:
-            result += pack('!B', self.length)
-        result += self.value_pack()
+            result += struct.pack('!B', self.length())
+
+        # Pack value
+        result += self._value_pack()
         return result
 
-    def value_pack(self):
-        return pack('!B', self.value)
+    def _value_pack(self):
+        """
+        Return a string representing the value packed.
+        """
+        length = self.length()
+        if(length == 0):
+            return ''
+        if(length == 1):
+            return struct.pack('!B', self.value)
+        elif(length == 2):
+            return struct.pack('!H', self.value)
+        elif(length == 4):
+            return struct.pack('!I', self.value)
+        raise Exception
 
 
 class Origin(PathAttribute):
@@ -135,10 +162,7 @@ class Origin(PathAttribute):
         """
         :param int value: Origin.IGP, Origin.EGP or Origin.INCOMPLETE
         """
-        super(Origin, self).__init__(Flag.TRANSITIVE, 1, value)
-
-    def length(self):
-        return 1
+        super(Origin, self).__init__(Flag.TRANSITIVE, 1, lambda: 1, value)
 
 
 class ASPath(PathAttribute):
@@ -185,26 +209,35 @@ class ASPath(PathAttribute):
             """
             self.type = type
             self.value = value if value else []
+            self.length = len(self.value)
 
         def __len__(self):
-            return len(self.value)
+            # len(ASPathSegment) = len(segment_type) + len(segment_length) + len(ASes)
+            # = 1 + 1 + 2 * segment_length
+            return 2 + 2 * len(self.value)
 
         def pack(self):
-            result = pack('!B', self.type)
-            result += pack('!B', len(self.value))
-            result += self.as_packed()
+            result = struct.pack('!B', self.type)
+            result += struct.pack('!B', len(self.value))
+            result += self._as_packed()
+            return result
 
-        def as_packed(self):
+        def _as_packed(self):
             result = ''
             for asn in self.value:
-                result += pack('!H', asn)
+                result += struct.pack('!H', asn)
             return result
 
     def __init__(self, value=None):
         """
         :param list value: ASPathSegment list
         """
-        super(ASPath, self).__init__(Flag.TRANSITIVE, 2, value if value else [])
+        length = lambda: sum([len(segment) for segment in self.value])
+        super(ASPath, self).__init__(
+            Flag.TRANSITIVE, 2, length, value if value else [])
+
+    def _value_pack(self):
+        return ''.join([segment.pack() for segment in self.value])
 
 
 class NextHop(PathAttribute):
@@ -220,8 +253,11 @@ class NextHop(PathAttribute):
         """
         :param str or int value: IPv4 address of the next-hop
         """
-        super(NextHop, self).__init__(Flag.TRANSITIVE, 3,
-                                      ipaddr.IPv4Address(value))
+        super(NextHop, self).__init__(
+            Flag.TRANSITIVE, 3, lambda: 4, ipaddr.IPv4Address(value))
+
+    def _value_pack(self):
+        return self.value.packed
 
 
 class MED(PathAttribute):
@@ -237,7 +273,7 @@ class MED(PathAttribute):
         """
         :param int value: the MED
         """
-        super(MED, self).__init__(Flag.OPTIONAL, 4, value)
+        super(MED, self).__init__(Flag.OPTIONAL, 4, lambda: 4, value)
 
 
 class LocalPref(PathAttribute):
@@ -253,7 +289,7 @@ class LocalPref(PathAttribute):
         """
         :param int value: the local preference.
         """
-        super(LocalPref, self).__init__(Flag.TRANSITIVE, 5, value)
+        super(LocalPref, self).__init__(Flag.TRANSITIVE, 5, lambda: 4, value)
 
 
 class AtomicAggregate(PathAttribute):
@@ -263,7 +299,7 @@ class AtomicAggregate(PathAttribute):
     """
 
     def __init__(self):
-        super(LocalPref, self).__init__(Flag.TRANSITIVE, 6)
+        super(LocalPref, self).__init__(Flag.TRANSITIVE, 6, 0, 0)
 
 
 class Aggregator(PathAttribute):
@@ -277,5 +313,11 @@ class Aggregator(PathAttribute):
     the one used for the BGP Identifier of the speaker.
     """
 
-    def __init__(self):
-        super(Aggregator, self).__init__(Flag.OPTIONAL | Flag.TRANSITIVE, 7)
+    def __init__(self, asn, ip):
+        self.asn   = asn
+        self.ip    = ipaddr.IPv4Address(ip)
+        self.value = self.asn << 32 + int(self.ip)
+        super(Aggregator, self).__init__(Flag.OPTIONAL | Flag.TRANSITIVE, 7, lambda: 6, self.value)
+
+    def value_pack(self):
+        return struct.pack('!BH', self.asn, int(self.ip))
