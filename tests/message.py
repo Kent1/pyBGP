@@ -77,8 +77,25 @@ class TestUpdate(unittest.TestCase):
     def test_pack_path_attr(self):
         origin = path_attribute.Origin(1)
         self.update.path_attr.append(origin)
-        as_path = path_attribute.ASPath([path_attribute.ASPath.ASPathSegment(2, [123, 2345])])
+
+        as_path = path_attribute.ASPath(
+            [path_attribute.ASPath.ASPathSegment(2, [123, 2345])])
         self.update.path_attr.append(as_path)
+
+        next_hop = path_attribute.NextHop('10.16.23.19')
+        self.update.path_attr.append(next_hop)
+
+        med = path_attribute.MED(200)
+        self.update.path_attr.append(med)
+
+        local_pref = path_attribute.LocalPref(50)
+        self.update.path_attr.append(local_pref)
+
+        atomic_aggregate = path_attribute.AtomicAggregate()
+        self.update.path_attr.append(atomic_aggregate)
+
+        aggregator = path_attribute.Aggregator(65100, '30.0.1.1')
+        self.update.path_attr.append(aggregator)
 
         # Marker
         expected = chr(0xFF) * 16
@@ -91,7 +108,8 @@ class TestUpdate(unittest.TestCase):
         expected += struct.pack('!H', 0)
         # Withdrawn Routes
         # Total Path Attribute Length (2 octets)
-        expected += struct.pack('!H', 4+9)
+        expected += struct.pack('!H', 4+9+7+7+7+3+9)
+
         # Path Attributes
         ## Origin
         ### flags
@@ -102,7 +120,8 @@ class TestUpdate(unittest.TestCase):
         expected += struct.pack('!B', 1)
         ### value
         expected += struct.pack('!B', 1)
-        ## as_path
+
+        ## AS Path
         ### flags
         expected += struct.pack('!B', 1 << 6)
         ### type
@@ -114,6 +133,69 @@ class TestUpdate(unittest.TestCase):
         expected += struct.pack('!B', 2)
         expected += struct.pack('!H', 123)
         expected += struct.pack('!H', 2345)
+
+        ## Next HOP
+        ### flags
+        expected += struct.pack('!B', 1 << 6)
+        ### type
+        expected += struct.pack('!B', 3)
+        ### length
+        expected += struct.pack('!B', 4)
+        ### value
+        expected += struct.pack('!B', 10)
+        expected += struct.pack('!B', 16)
+        expected += struct.pack('!B', 23)
+        expected += struct.pack('!B', 19)
+
+        ## MED
+        ### flags
+        expected += struct.pack('!B', 1 << 7)
+        ### type
+        expected += struct.pack('!B', 4)
+        ### length
+        expected += struct.pack('!B', 4)
+        ### value
+        expected += struct.pack('!B', 0)
+        expected += struct.pack('!B', 0)
+        expected += struct.pack('!B', 0)
+        expected += struct.pack('!B', 200)
+
+        ## Local Pref
+        ### flags
+        expected += struct.pack('!B', 1 << 6)
+        ### type
+        expected += struct.pack('!B', 5)
+        ### length
+        expected += struct.pack('!B', 4)
+        ### value
+        expected += struct.pack('!B', 0)
+        expected += struct.pack('!B', 0)
+        expected += struct.pack('!B', 0)
+        expected += struct.pack('!B', 50)
+
+        ## Atomic Aggregate
+        ### flags
+        expected += struct.pack('!B', 1 << 6)
+        ### type
+        expected += struct.pack('!B', 6)
+        ### length
+        expected += struct.pack('!B', 0)
+
+        ## Aggregator
+        ### flags
+        expected += struct.pack('!B', (1 << 7) + (1 << 6))
+        ### type
+        expected += struct.pack('!B', 7)
+        ### length
+        expected += struct.pack('!B', 6)
+        ### value
+        expected += struct.pack('!H', 65100)
+        expected += struct.pack('!B', 30)
+        expected += struct.pack('!B', 0)
+        expected += struct.pack('!B', 1)
+        expected += struct.pack('!B', 1)
+
+
         # Network Layer Reachability Information
         self.assertEqual(self.update.pack(), expected)
 

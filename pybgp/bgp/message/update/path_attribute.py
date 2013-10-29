@@ -97,7 +97,7 @@ class PathAttribute(object):
 
     def pack(self):
         """
-        Return a string representing the message.
+        Return a string representing the packet.
         """
         result = struct.pack('!B', self.flags)
         result += struct.pack('!B', self.type_code)
@@ -217,12 +217,18 @@ class ASPath(PathAttribute):
             return 2 + 2 * len(self.value)
 
         def pack(self):
+            """
+            Return a string representing the packet.
+            """
             result = struct.pack('!B', self.type)
             result += struct.pack('!B', len(self.value))
             result += self._as_packed()
             return result
 
         def _as_packed(self):
+            """
+            Return a string representing the AS list.
+            """
             result = ''
             for asn in self.value:
                 result += struct.pack('!H', asn)
@@ -299,7 +305,7 @@ class AtomicAggregate(PathAttribute):
     """
 
     def __init__(self):
-        super(LocalPref, self).__init__(Flag.TRANSITIVE, 6, 0, 0)
+        super(AtomicAggregate, self).__init__(Flag.TRANSITIVE, 6, lambda: 0, 0)
 
 
 class Aggregator(PathAttribute):
@@ -314,10 +320,15 @@ class Aggregator(PathAttribute):
     """
 
     def __init__(self, asn, ip):
+        """
+        :param int asn: The AS number.
+        :param int or str ip: The IP Address.
+        """
         self.asn   = asn
         self.ip    = ipaddr.IPv4Address(ip)
         self.value = self.asn << 32 + int(self.ip)
-        super(Aggregator, self).__init__(Flag.OPTIONAL | Flag.TRANSITIVE, 7, lambda: 6, self.value)
+        super(Aggregator, self).__init__(
+            Flag.OPTIONAL | Flag.TRANSITIVE, 7, lambda: 6, self.value)
 
-    def value_pack(self):
-        return struct.pack('!BH', self.asn, int(self.ip))
+    def _value_pack(self):
+        return struct.pack('!HI', self.asn, int(self.ip))
