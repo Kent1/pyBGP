@@ -10,7 +10,7 @@ import struct
 import ipaddr
 import unittest
 
-from pybgp.bgp.message import Open, Update
+from pybgp.bgp.message import Open, Update, KeepAlive
 from pybgp.bgp.message.update import path_attribute, IPField
 
 
@@ -283,6 +283,23 @@ class TestUpdate(unittest.TestCase):
         expected += struct.pack('!B', 230)
         expected += struct.pack('!B', 96)
         self.assertEqual(self.update.pack(), expected)
+
+
+class TestKeepAlive(unittest.TestCase):
+
+    def setUp(self):
+        self.keepalive = KeepAlive()
+
+    def test_keepalive(self):
+        # Marker
+        expected = struct.pack('!B', 0xFF) * 16
+        # length = 19, 2 bytes
+        expected += struct.pack('!H', 19)
+        # type = 4 - KEEPALIVE
+        expected += struct.pack('!B', 4)
+
+        self.assertEqual(self.keepalive.pack(), expected)
+
 
 
 if __name__ == '__main__':
