@@ -257,7 +257,7 @@ class NextHop(PathAttribute):
 
     def __init__(self, value):
         """
-        :param str or int value: IPv4 address of the next-hop
+        :param int/str value: IPv4 address of the next-hop
         """
         super(NextHop, self).__init__(
             Flag.TRANSITIVE, 3, lambda: 4, ipaddr.IPv4Address(value))

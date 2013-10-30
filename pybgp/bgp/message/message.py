@@ -6,6 +6,11 @@ from struct import pack
 
 
 class Type(object):
+
+    """
+    Type of a BGP message.
+    """
+
     OPEN         = 1
     UPDATE       = 2
     NOTIFICATION = 3
@@ -15,8 +20,8 @@ class Type(object):
 class Message(object):
 
     """
-    BGP message. It defines the header of all BGP messages like OPEN, UPDATE,
-    etc.
+    Base of a BGP message. It defines the header wich is the same in
+    all BGP messages like OPEN, UPDATE, etc.
 
     Format of the message::
 
@@ -42,7 +47,7 @@ class Message(object):
         This value is >= 19 and <= 4096.
 
     Type:
-        Represents the type of the message.
+        Represents the type of the message. See :py:class:`pybgp.bgp.message.Type`
     """
 
     MARKER  = pack('!B', 0xFF) * 16

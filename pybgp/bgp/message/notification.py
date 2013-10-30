@@ -90,6 +90,10 @@ class Notification(Message):
 
 class HeaderError(Notification):
 
+    """
+    Notification with error code 1, Message Header Error.
+    """
+
     UNSPECIFIC                  = 0
     CONNECTION_NOT_SYNCHRONIZED = 1
     BAD_MESSAGE_LENGTH          = 2
@@ -116,6 +120,10 @@ class HeaderError(Notification):
 
 
 class OpenError(Notification):
+
+    """
+    Notification with error code 2, OPEN Message Error.
+    """
 
     UNSPECIFIC                     = 0
     UNSUPPORTED_VERSION_NUMBER     = 1
@@ -149,6 +157,10 @@ class OpenError(Notification):
 
 
 class UpdateError(Notification):
+
+    """
+    Notification with error code 3, UPDATE Message Error.
+    """
 
     UNSPECIFIC                        = 0
     MALFORMED_ATTRIBUTE_LIST          = 1
@@ -194,6 +206,10 @@ class UpdateError(Notification):
 
 class HoldTimerExpired(Notification):
 
+    """
+    Notification with error code 4, Hold Timer Expired.
+    """
+
     UNSPECIFIC = 0
 
     str_subcode = {
@@ -215,6 +231,10 @@ class HoldTimerExpired(Notification):
 
 class FSMError(Notification):
 
+    """
+    Notification with error code 5, Finite State Machine Error.
+    """
+
     UNSPECIFIC = 0
 
     str_subcode = {
@@ -235,6 +255,10 @@ class FSMError(Notification):
 
 
 class FSMError(Notification):
+
+    """
+    Notification with error code 5, Cease.
+    """
 
     UNSPECIFIC = 0
 

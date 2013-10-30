@@ -112,11 +112,18 @@ class IPField(object):
     """
 
     def __init__(self, length, prefix):
+        """
+        :param int length: The length of the prefix.
+        :param int/str prefix: The IP prefix.
+        """
         self.length  = length
         self.prefix  = prefix
         self.octects = self._number_octects()
 
     def _number_octects(self):
+        """
+        Compute number of octets necessary to store the prefix.
+        """
         number_octect = 4
         if self.length <= 24:
             number_octect = 3
@@ -132,6 +139,11 @@ class IPField(object):
         return self.octects + 1
 
     def pack(self):
+        """
+        Return a string representing the IPField packed.
+
+        :param int/str prefix: The IP prefix.
+        """
         packed = pack('!B', self.length)
         prefix_split = self.prefix.split('.')
         for i in range(self.octects):

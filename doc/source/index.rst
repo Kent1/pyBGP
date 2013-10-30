@@ -6,7 +6,7 @@
 pyBGP's documentation!
 =================================
 
-*pyBGP* is a simple BGP deamon that can be controlled simply.
+*pyBGP* is a simple BGP daemon that can be controlled simply.
 
 Contents:
 

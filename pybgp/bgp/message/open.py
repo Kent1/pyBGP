@@ -40,7 +40,7 @@ class Open(Message):
     Hold Time:
         Seconds between message (KEEPALIVE).
     BGP Identifier:
-        An assigned IP address of the sender.
+        An assigned IPv4 address of the sender.
     Opt. Parm. Length:
         Length of the optional parameters.
     Optional Parameters:
@@ -67,7 +67,7 @@ class Open(Message):
         """
         :param int asn: The AS number of the sender.
         :param int hold_time: The hold_time of the sender.
-        :param str or int router_id: The router_id of the sender.
+        :param int/str router_id: The router_id of the sender.
         :param int version: Version of BGP (default=4).
         :param list capabilities: List of capabilities (default=None).
         """
