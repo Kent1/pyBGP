@@ -60,7 +60,7 @@ class Notification(Message):
         """
         self.error_code    = error_code
         self.error_subcode = error_subcode
-        self.data          = data if data else ''
+        self.data          = data or ''
         super(Notification, self).__init__(Type.NOTIFICATION)
 
     def __str__(self):

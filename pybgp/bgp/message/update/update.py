@@ -52,9 +52,9 @@ class Update(Message):
         :param path_attr: list of PathAttributes
         :param nlris: list of IPFields to advertise.
         """
-        self.withdrawn_routes = withdrawn_routes if withdrawn_routes else []
-        self.path_attr        = path_attr if path_attr else []
-        self.nlris            = nlris if nlris else []
+        self.withdrawn_routes = withdrawn_routes or []
+        self.path_attr        = path_attr or []
+        self.nlris            = nlris or []
         super(Update, self).__init__(Type.UPDATE)
 
     def __len__(self):

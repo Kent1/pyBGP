@@ -208,7 +208,7 @@ class ASPath(PathAttribute):
             :param list value: AS numbers
             """
             self.type = type
-            self.value = value if value else []
+            self.value = value or []
             self.length = len(self.value)
 
         def __len__(self):
@@ -240,7 +240,7 @@ class ASPath(PathAttribute):
         """
         length = lambda: sum([len(segment) for segment in self.value])
         super(ASPath, self).__init__(
-            Flag.TRANSITIVE, 2, length, value if value else [])
+            Flag.TRANSITIVE, 2, length, value or [])
 
     def _value_pack(self):
         return ''.join([segment.pack() for segment in self.value])

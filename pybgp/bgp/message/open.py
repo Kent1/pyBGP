@@ -75,7 +75,7 @@ class Open(Message):
         self.asn          = asn
         self.hold_time    = hold_time
         self.router_id    = ipaddr.IPv4Address(router_id)
-        self.capabilities = capabilities if capabilities else []
+        self.capabilities = capabilities or []
         super(Open, self).__init__(Type.OPEN)
 
     def __str__(self):
