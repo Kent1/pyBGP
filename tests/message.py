@@ -24,25 +24,24 @@ class TestOpen(unittest.TestCase):
 
     def test_pack(self):
         # marker
-        expected = chr(0xFF) * 16
+        expected = struct.pack('!B', 0xFF) * 16
         # length = 29, 2 bytes
-        expected += chr(0)
-        expected += chr(29)
+        expected += struct.pack('!H', 29)
         # type = 1 - OPEN
-        expected += chr(1)
+        expected += struct.pack('!B', 1)
         # version = 4
-        expected += chr(4)
+        expected += struct.pack('!B', 4)
         # asn = 65000, 0xFD 0xE8
         expected += struct.pack('!H', self.asn)
         # hold time = 3
         expected += struct.pack('!H', self.hold_time)
         # bgp identifier
-        expected += chr(10)
-        expected += chr(0)
-        expected += chr(0)
-        expected += chr(1)
+        expected += struct.pack('!B', 10)
+        expected += struct.pack('!B', 0)
+        expected += struct.pack('!B', 0)
+        expected += struct.pack('!B', 1)
         # param length
-        expected += chr(0)
+        expected += struct.pack('!B', 0)
         self.assertEqual(self.open.pack(), expected)
 
     def test_len(self):
@@ -59,12 +58,11 @@ class TestUpdate(unittest.TestCase):
 
     def test_empty(self):
         # Marker
-        expected = chr(0xFF) * 16
+        expected = struct.pack('!B', 0xFF) * 16
         # length = 23, 2 bytes
-        expected += chr(0)
-        expected += chr(23)
+        expected += struct.pack('!H', 23)
         # type = 2 - UPDATE
-        expected += chr(2)
+        expected += struct.pack('!B', 2)
         # Withdrawn Routes Length (2 octets)
         expected += struct.pack('!H', 0)
         # Withdrawn Routes
@@ -79,12 +77,11 @@ class TestUpdate(unittest.TestCase):
         self.update.withdrawn_routes.append(IPField(15, '180.128.0.0'))
 
         # Marker
-        expected = chr(0xFF) * 16
+        expected = struct.pack('!B', 0xFF) * 16
         # length = 23, 2 bytes
-        expected += chr(0)
-        expected += chr(30)
+        expected += struct.pack('!H', 30)
         # type = 2 - UPDATE
-        expected += chr(2)
+        expected += struct.pack('!B', 2)
         # Withdrawn Routes Length (2 octets)
         expected += struct.pack('!H', 7)
         # Withdrawn Routes
@@ -127,12 +124,11 @@ class TestUpdate(unittest.TestCase):
         self.update.path_attr.append(aggregator)
 
         # Marker
-        expected = chr(0xFF) * 16
+        expected = struct.pack('!B', 0xFF) * 16
         # length = 23, 2 bytes
-        expected += chr(0)
-        expected += chr(69)
+        expected += struct.pack('!H', 69)
         # type = 2 - UPDATE
-        expected += chr(2)
+        expected += struct.pack('!B', 2)
         # Withdrawn Routes Length (2 octets)
         expected += struct.pack('!H', 0)
         # Withdrawn Routes
@@ -225,6 +221,67 @@ class TestUpdate(unittest.TestCase):
         expected += struct.pack('!B', 1)
 
         # Network Layer Reachability Information
+        self.assertEqual(self.update.pack(), expected)
+
+    def test_withdrawn_routes(self):
+        self.update.nlris.append(IPField(12, '255.160.0.0'))
+        self.update.nlris.append(IPField(19, '10.230.96.0'))
+
+        as_path = path_attribute.ASPath(
+            [path_attribute.ASPath.ASPathSegment(2, [123, 2345])])
+        self.update.path_attr.append(as_path)
+
+        next_hop = path_attribute.NextHop('10.16.23.19')
+        self.update.path_attr.append(next_hop)
+
+        # Marker
+        expected = struct.pack('!B', 0xFF) * 16
+        # length = 23, 2 bytes
+        expected += struct.pack('!H', 46)
+        # type = 2 - UPDATE
+        expected += struct.pack('!B', 2)
+        # Withdrawn Routes Length (2 octets)
+        expected += struct.pack('!H', 0)
+        # Withdrawn Routes
+        # Total Path Attribute Length (2 octets)
+        expected += struct.pack('!H', 16)
+        # Path Attributes
+        ## AS Path
+        ### flags
+        expected += struct.pack('!B', 1 << 6)
+        ### type
+        expected += struct.pack('!B', 2)
+        ### length
+        expected += struct.pack('!B', 6)
+        ### value
+        expected += struct.pack('!B', 2)
+        expected += struct.pack('!B', 2)
+        expected += struct.pack('!H', 123)
+        expected += struct.pack('!H', 2345)
+
+        ## Next HOP
+        ### flags
+        expected += struct.pack('!B', 1 << 6)
+        ### type
+        expected += struct.pack('!B', 3)
+        ### length
+        expected += struct.pack('!B', 4)
+        ### value
+        expected += struct.pack('!B', 10)
+        expected += struct.pack('!B', 16)
+        expected += struct.pack('!B', 23)
+        expected += struct.pack('!B', 19)
+
+        # Network Layer Reachability Information
+        ## 255.160.0.0/12
+        expected += struct.pack('!B', 12)
+        expected += struct.pack('!B', 255)
+        expected += struct.pack('!B', 160)
+        ## 10.230.96.0/19
+        expected += struct.pack('!B', 19)
+        expected += struct.pack('!B', 10)
+        expected += struct.pack('!B', 230)
+        expected += struct.pack('!B', 96)
         self.assertEqual(self.update.pack(), expected)
 
 
