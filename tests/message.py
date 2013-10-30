@@ -10,7 +10,7 @@ import struct
 import ipaddr
 import unittest
 
-from pybgp.bgp.message import Open, Update, KeepAlive
+from pybgp.bgp.message import *
 from pybgp.bgp.message.update import path_attribute, IPField
 
 
@@ -300,6 +300,43 @@ class TestKeepAlive(unittest.TestCase):
 
         self.assertEqual(self.keepalive.pack(), expected)
 
+
+class TestNotification(unittest.TestCase):
+
+    def setUp(self):
+        self.notification = None
+
+    def test_header(self):
+        self.notification = HeaderError(HeaderError.BAD_MESSAGE_TYPE)
+
+        # Marker
+        expected = struct.pack('!B', 0xFF) * 16
+        # length = 19, 2 bytes
+        expected += struct.pack('!H', 21)
+        # type = 3 - Notification
+        expected += struct.pack('!B', 3)
+        # Error code
+        expected += struct.pack('!B', 1)
+        # Error subcode
+        expected += struct.pack('!B', 3)
+
+        self.assertEqual(self.notification.pack(), expected)
+
+    def test_open(self):
+        self.notification = OpenError(OpenError.UNACCEPTABLE_HOLD_TIME)
+
+        # Marker
+        expected = struct.pack('!B', 0xFF) * 16
+        # length = 19, 2 bytes
+        expected += struct.pack('!H', 21)
+        # type = 3 - Notification
+        expected += struct.pack('!B', 3)
+        # Error code
+        expected += struct.pack('!B', 2)
+        # Error subcode
+        expected += struct.pack('!B', 6)
+
+        self.assertEqual(self.notification.pack(), expected)
 
 
 if __name__ == '__main__':
