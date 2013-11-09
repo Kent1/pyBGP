@@ -3,12 +3,13 @@
 Author: Quentin Loos <contact@quentinloos.be>
 """
 import struct
-import ipaddr
 
 
-class Flag(int):
+class Flag(object):
 
     """
+    Attribute Flag.
+
     The high-order bit (bit 0) of the Attribute Flags octet is the
     Optional bit.  It defines whether the attribute is optional (if
     set to 1) or well-known (if set to 0).
@@ -31,18 +32,29 @@ class Flag(int):
     Length is one octet (if set to 0) or two octets (if set to 1).
 
     The lower-order four bits of the Attribute Flags octet are
-    unused.  They MUST be zero when sent and MUST be ignored when
-    received.    This is an optional non-transitive attribute that is a
-    four-octet unsigned integer.  The value of this attribute
-    MAY be used by a BGP speaker's Decision Process to
-    discriminate among multiple entry points to a neighboring
-
+    unused. They MUST be zero when sent and MUST be ignored when
+    received.
     """
 
     OPTIONAL      = 1 << 7
     TRANSITIVE    = 1 << 6
     PARTIAL       = 1 << 5
     EXTEND_LENGTH = 1 << 4
+
+
+class TypeCode(object):
+
+    """
+    Constants type code of Path Attributes.
+    """
+
+    ORIGIN          = 1
+    ASPATH          = 2
+    NEXTHOP         = 3
+    MED             = 4
+    LOCALPREF       = 5
+    ATOMICAGGREGATE = 6
+    AGGREGATOR      = 7
 
 
 class PathAttribute(object):
@@ -83,7 +95,8 @@ class PathAttribute(object):
         """
         :param int flags: flags of the Path Attribute.
         :param int type_code: type code of the Path Attribute.
-        :param int length: length in octet of the value.
+        :param function length:
+            function returning the length in octet of the value.
         :param value: value of the Path Attribute.
         """
         self.flags     = flags
@@ -99,8 +112,7 @@ class PathAttribute(object):
         """
         Return a string representing the packet.
         """
-        result = struct.pack('!B', self.flags)
-        result += struct.pack('!B', self.type_code)
+        result = struct.pack('!BB', self.flags, self.type_code)
 
         # Extended Length ?
         if(self.flags & Flag.EXTEND_LENGTH):
@@ -116,16 +128,80 @@ class PathAttribute(object):
         """
         Return a string representing the value packed.
         """
-        length = self.length()
-        if(length == 0):
+        if(self.length() == 0):
             return ''
-        if(length == 1):
+        if(self.length() == 1):
             return struct.pack('!B', self.value)
-        elif(length == 2):
+        elif(self.length() == 2):
             return struct.pack('!H', self.value)
-        elif(length == 4):
+        elif(self.length() == 4):
             return struct.pack('!I', self.value)
         raise Exception
+
+    @classmethod
+    def unpack(cls, path_attr):
+        """
+        Unpack the string given in parameter and return a PathAttribute
+        object (or a child of it).
+        """
+        flags, type_code, value_length = cls.header_unpack(path_attr)
+        header_length = 2 + (2 if flags & Flag.EXTEND_LENGTH else 1)
+        value = cls.value_unpack(path_attr[header_length:header_length+value_length])
+        return cls(*value)
+
+    @classmethod
+    def header_unpack(cls, path_attr):
+        """
+        Return the flags, type_code and length of a
+        PathAttribute string packed.
+        """
+        flags, type_code = struct.unpack('!BB', path_attr[:2])
+        if flags & Flag.EXTEND_LENGTH:
+            length, = struct.unpack('!H', path_attr[2:4])
+        else:
+            length, = struct.unpack('!B', path_attr[2:3])
+
+        return flags, type_code, length
+
+    @classmethod
+    def value_unpack(cls, value):
+        """
+        Return a string representing the value packed.
+        """
+        if(len(value) == 0):
+            return ''
+        if(len(value) == 1):
+            return struct.unpack('!B', value)
+        elif(len(value) == 2):
+            return struct.unpack('!H', value)
+        elif(len(value) == 4):
+            return struct.unpack('!I', value)
+        return struct.unpack('!%ds' % len(value), value)
+
+    @classmethod
+    def create(cls, path_attr):
+        """
+        Create the right PathAttribute Child object, given the
+        packed string.
+        """
+        flags, type_code, length = cls.header_unpack(path_attr)
+
+        if type_code == TypeCode.ORIGIN:
+            return Origin.unpack(path_attr[:len(path_attr)])
+        elif type_code == TypeCode.ASPATH:
+            return ASPath.unpack(path_attr[:len(path_attr)])
+        elif type_code == TypeCode.NEXTHOP:
+            return NextHop.unpack(path_attr[:len(path_attr)])
+        elif type_code == TypeCode.MED:
+            return MED.unpack(path_attr[:len(path_attr)])
+        elif type_code == TypeCode.LOCALPREF:
+            return LocalPref.unpack(path_attr[:len(path_attr)])
+        elif type_code == TypeCode.ATOMICAGGREGATE:
+            return AtomicAggregate.unpack(path_attr[:len(path_attr)])
+        elif type_code == TypeCode.AGGREGATOR:
+            return Aggregator.unpack(path_attr[:len(path_attr)])
+        else:
+            raise Exception
 
 
 class Origin(PathAttribute):
@@ -162,7 +238,8 @@ class Origin(PathAttribute):
         """
         :param int value: Origin.IGP, Origin.EGP or Origin.INCOMPLETE
         """
-        super(Origin, self).__init__(Flag.TRANSITIVE, 1, lambda: 1, value)
+        super(Origin, self).__init__(
+            Flag.TRANSITIVE, TypeCode.ORIGIN, lambda: 1, value)
 
 
 class ASPath(PathAttribute):
@@ -209,7 +286,6 @@ class ASPath(PathAttribute):
             """
             self.type = type
             self.value = value or []
-            self.length = len(self.value)
 
         def __len__(self):
             # len(ASPathSegment) = len(segment_type) + len(segment_length) + len(ASes)
@@ -218,32 +294,47 @@ class ASPath(PathAttribute):
 
         def pack(self):
             """
-            Return a string representing the packet.
+            Return a string representing the ASPathSegment.
             """
-            result = struct.pack('!B', self.type)
-            result += struct.pack('!B', len(self.value))
-            result += self._as_packed()
+            result = struct.pack('!BB', self.type, len(self.value))
+            result += ''.join([struct.pack('!H', asn) for asn in self.value])
             return result
 
-        def _as_packed(self):
+        @classmethod
+        def unpack(cls, segment_packed):
             """
-            Return a string representing the AS list.
+            Return an ASPathSegment object corresponding
+            to the string in parameter.
             """
-            result = ''
-            for asn in self.value:
-                result += struct.pack('!H', asn)
-            return result
+            type, length = struct.unpack('!BB', segment_packed[:2])
+            asn = struct.unpack('!%dH' % length, segment_packed[2:2+2*length])
+            return cls(type, value=list(asn))
 
-    def __init__(self, value=None):
+    def __init__(self, value):
         """
         :param list value: ASPathSegment list
         """
         length = lambda: sum([len(segment) for segment in self.value])
         super(ASPath, self).__init__(
-            Flag.TRANSITIVE, 2, length, value or [])
+            Flag.TRANSITIVE, TypeCode.ASPATH, length, value or [])
 
     def _value_pack(self):
+        """
+        Pack all the segment in a string and return it.
+        """
         return ''.join([segment.pack() for segment in self.value])
+
+    @classmethod
+    def value_unpack(cls, value):
+        """
+        Return the list of the segment unpacked include in the value param.
+        """
+        segments = []
+        while(value):
+            segment = cls.ASPathSegment.unpack(value)
+            segments.append(segment)
+            value = value[len(segment):]
+        return [segments]
 
 
 class NextHop(PathAttribute):
@@ -257,13 +348,10 @@ class NextHop(PathAttribute):
 
     def __init__(self, value):
         """
-        :param int/str value: IPv4 address of the next-hop
+        :param int value: IPv4 address of the next-hop
         """
         super(NextHop, self).__init__(
-            Flag.TRANSITIVE, 3, lambda: 4, ipaddr.IPv4Address(value))
-
-    def _value_pack(self):
-        return self.value.packed
+            Flag.TRANSITIVE, TypeCode.NEXTHOP, lambda: 4, value)
 
 
 class MED(PathAttribute):
@@ -279,7 +367,8 @@ class MED(PathAttribute):
         """
         :param int value: the MED
         """
-        super(MED, self).__init__(Flag.OPTIONAL, 4, lambda: 4, value)
+        super(MED, self).__init__(
+            Flag.OPTIONAL, TypeCode.MED, lambda: 4, value)
 
 
 class LocalPref(PathAttribute):
@@ -295,7 +384,8 @@ class LocalPref(PathAttribute):
         """
         :param int value: the local preference.
         """
-        super(LocalPref, self).__init__(Flag.TRANSITIVE, 5, lambda: 4, value)
+        super(LocalPref, self).__init__(
+            Flag.TRANSITIVE, TypeCode.LOCALPREF, lambda: 4, value)
 
 
 class AtomicAggregate(PathAttribute):
@@ -305,7 +395,8 @@ class AtomicAggregate(PathAttribute):
     """
 
     def __init__(self):
-        super(AtomicAggregate, self).__init__(Flag.TRANSITIVE, 6, lambda: 0, 0)
+        super(AtomicAggregate, self).__init__(
+            Flag.TRANSITIVE, TypeCode.ATOMICAGGREGATE, lambda: 0, None)
 
 
 class Aggregator(PathAttribute):
@@ -322,13 +413,24 @@ class Aggregator(PathAttribute):
     def __init__(self, asn, ip):
         """
         :param int asn: The AS number.
-        :param int or str ip: The IP Address.
+        :param int ip: The IP Address.
         """
         self.asn   = asn
-        self.ip    = ipaddr.IPv4Address(ip)
-        self.value = self.asn << 32 + int(self.ip)
+        self.ip    = ip
+        self.value = self.asn << 32 + self.ip
         super(Aggregator, self).__init__(
-            Flag.OPTIONAL | Flag.TRANSITIVE, 7, lambda: 6, self.value)
+            Flag.OPTIONAL | Flag.TRANSITIVE,
+            TypeCode.AGGREGATOR, lambda: 6, self.value)
 
     def _value_pack(self):
-        return struct.pack('!HI', self.asn, int(self.ip))
+        """
+        Return a string representing the value packed.
+        """
+        return struct.pack('!HI', self.asn, self.ip)
+
+    @classmethod
+    def value_unpack(cls, value):
+        """
+        Return a string representing the value unpacked.
+        """
+        return struct.unpack('!HI', value)
