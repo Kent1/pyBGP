@@ -2,9 +2,9 @@
 """
 Author: Quentin Loos <contact@quentinloos.be>
 """
+import struct
+
 from pybgp.bgp.message import Message, Type
-from struct import pack
-import ipaddr
 
 
 class Open(Message):
@@ -63,24 +63,23 @@ class Open(Message):
 
     MIN_LEN = 29
 
-    def __init__(self, asn, hold_time, router_id, version=4, capabilities=None):
+    def __init__(self, asn, hold_time, router_id, capabilities=None):
         """
         :param int asn: The AS number of the sender.
         :param int hold_time: The hold_time of the sender.
-        :param int/str router_id: The router_id of the sender.
+        :param int router_id: The router_id of the sender.
         :param int version: Version of BGP (default=4).
         :param list capabilities: List of capabilities (default=None).
         """
-        self.version      = version
+        super(Open, self).__init__(Type.OPEN)
+        self.version      = 4
         self.asn          = asn
         self.hold_time    = hold_time
-        self.router_id    = ipaddr.IPv4Address(router_id)
+        self.router_id    = router_id
         self.capabilities = capabilities or []
-        super(Open, self).__init__(Type.OPEN)
 
     def __str__(self):
         result = 'BGP OPEN Message ('
-        result += 'Version %d, '     % self.version
         result += 'AS %d, '          % self.asn
         result += 'Hold Time %d, '   % self.hold_time
         result += 'Router ID %s, '   % self.router_id
@@ -97,10 +96,17 @@ class Open(Message):
         the length of capabilities and the list of capabilities.
         """
         result = super(Open, self).pack()
-        result += pack('!B', self.version)
-        result += pack('!H', self.asn)
-        result += pack('!H', self.hold_time)
-        result += self.router_id.packed
-        result += pack('!B', len(self.capabilities))
+        result += struct.pack('!BHH', self.version, self.asn, self.hold_time)
+        result += struct.pack('!IB', self.router_id, len(self.capabilities))
         #TODO Support capabilities
         return result
+
+    @classmethod
+    def unpack(cls, msg):
+        """
+        Factory function.
+        Return a OPEN object corresponding to the given packed msg.
+        """
+        length, type = Message.header_unpack(msg)
+        version, asn, hold_time, router_id = struct.unpack('!BHHI', msg[19:28])
+        return cls(asn, hold_time, router_id)

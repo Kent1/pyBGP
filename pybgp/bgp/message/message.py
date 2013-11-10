@@ -2,7 +2,7 @@
 """
 Author: Quentin Loos <contact@quentinloos.be>
 """
-from struct import pack
+import struct
 
 
 class Type(object):
@@ -47,10 +47,11 @@ class Message(object):
         This value is >= 19 and <= 4096.
 
     Type:
-        Represents the type of the message. See :py:class:`pybgp.bgp.message.Type`
+        Represents the type of the message.
+        See :py:class:`pybgp.bgp.message.Type`
     """
 
-    MARKER  = pack('!B', 0xFF) * 16
+    MARKER  = struct.pack('!B', 0xFF) * 16
     MIN_LEN = 19
 
     def __init__(self, type):
@@ -67,4 +68,30 @@ class Message(object):
         Return a string representation of the packet to send.
         This string includes marker, length of the packet and type.
         """
-        return self.MARKER + pack('!H', len(self)) + pack('!B', self.type)
+        return self.MARKER + struct.pack('!HB', len(self), self.type)
+
+    @classmethod
+    def header_unpack(cls, msg):
+        """
+        Return the type and the length of a message, regardless the
+        type of the message.
+        Verify that marker, length and type are well-formed.
+        """
+
+        if len(msg) < 19:
+            raise Exception
+
+        marker, length, type = struct.unpack('!16sHB', msg[:19])
+
+        if marker != Message.MARKER:
+            raise Exception
+
+        if length < 19 or length > 4096:
+            raise Exception
+
+        return length, type
+
+    @classmethod
+    def unpack(cls, msg):
+        length, type = Message.header_unpack(msg)
+        return cls(type)
