@@ -108,5 +108,11 @@ class Open(Message):
         Return a OPEN object corresponding to the given packed msg.
         """
         length, type = Message.header_unpack(msg)
+        if type != Type.OPEN:
+            raise Exception
+
         version, asn, hold_time, router_id = struct.unpack('!BHHI', msg[19:28])
+        length_capabilities = struct.unpack('!B', msg[28:29])
+        if length_capabilities:
+            pass
         return cls(asn, hold_time, router_id)

@@ -3,7 +3,7 @@
 Author: Quentin Loos <contact@quentinloos.be>
 """
 from pybgp.bgp.message import Message, Type
-from struct import pack
+import struct
 
 
 class Notification(Message):
@@ -82,10 +82,22 @@ class Notification(Message):
         and data.
         """
         result = super(Notification, self).pack()
-        result += pack('!B', self.error_code)
-        result += pack('!B', self.error_subcode)
+        result += struct.pack('!B', self.error_code)
+        result += struct.pack('!B', self.error_subcode)
         result += self.data
         return result
+
+    @classmethod
+    def unpack(cls, msg):
+        """
+        Factory function.
+        Return a NOTIFICATION object corresponding to the given packed msg.
+        """
+        length, type = Message.header_unpack(msg[:19])
+        error_code, error_subcode = struct.unpack('!BB', msg[19:21])
+        if length > 21:
+            data = struct.unpack('!%ds' % (length - 21), msg[21:length])
+        return cls(error_code, error_subcode, data)
 
 
 class HeaderError(Notification):
@@ -132,6 +144,7 @@ class OpenError(Notification):
     UNSUPPORTED_OPTIONAL_PARAMETER = 4
     AUTHENTICATION_NOTIFICATION    = 5
     UNACCEPTABLE_HOLD_TIME         = 6
+    UNSUPPORTED CAPABILITY         = 7  # RFC 5492
 
     str_subcode = {
         UNSPECIFIC                     : 'Unspecific.',
@@ -141,6 +154,7 @@ class OpenError(Notification):
         UNSUPPORTED_OPTIONAL_PARAMETER : 'Unsupported Optional Parameter.',
         AUTHENTICATION_NOTIFICATION    : 'Authentication Notification (Deprecated).',
         UNACCEPTABLE_HOLD_TIME         : 'Unacceptable Hold Time.',
+        UNSUPPORTED CAPABILITY         : 'Unsupported Capability',
     }
 
     def __init__(self, error_subcode=0, data=None):
